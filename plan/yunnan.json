@@ -1,0 +1,84 @@
+{
+  "versions": {
+    "days": 8,
+    "places": 21,
+    "foods": 2,
+    "checks": 1,
+    "texts": 8,
+    "freeNote": 1
+  },
+  "data": {
+    "days": [
+      {
+        "title": "Day 1",
+        "level": "轻松",
+        "c": "shantou",
+        "items": []
+      },
+      {
+        "title": "Day 2 ",
+        "level": "中等",
+        "c": "shantou",
+        "items": []
+      },
+      {
+        "title": "Day 3",
+        "level": "偏满",
+        "c": "nanao",
+        "items": []
+      },
+      {
+        "title": "Day 4",
+        "level": "灵活",
+        "c": "chaozhou",
+        "items": []
+      }
+    ],
+    "places": [],
+    "foods": [],
+    "checks": [
+      {
+        "text": "确认 3 人抵达汕头时间",
+        "done": false
+      },
+      {
+        "text": "订 6.18 汕头住宿（小公园 / 万象城附近）",
+        "done": false
+      },
+      {
+        "text": "订 6.19 南澳住宿（青澳湾或后宅镇）",
+        "done": false
+      },
+      {
+        "text": "订 6.20 潮州住宿（牌坊街 / 广济桥附近）",
+        "done": false
+      },
+      {
+        "text": "带防晒、帽子、墨镜、肠胃药、驱蚊用品",
+        "done": false
+      }
+    ],
+    "texts": {
+      "title": "新的旅行计划",
+      "subtitle": "点这里编辑：目的地 · 日期 · 人数",
+      "kicker": "A new trip",
+      "herotitle": "<font color=\"#1d7a6f\">西藏</font>",
+      "lede": "阿刁~~~大昭寺门前铺满阳光~~~~",
+      "f1": "7天 6 晚",
+      "f2": "",
+      "f3": "",
+      "t1": "",
+      "t2": "出岛回汕头站，坐动车到潮汕站，再打车进潮州古城。",
+      "t3": "岩儿可以从牌坊街或广济桥附近打车去潮汕站。我跟三角我们俩可以一起去机场。",
+      "b1": " – ",
+      "b2": " – ",
+      "b3": " – ",
+      "b4": " – ",
+      "b5": "",
+      "b6": " –  元"
+    },
+    "freeNote": ""
+  },
+  "updatedBy": "大林",
+  "updatedAt": 1781693205373
+}

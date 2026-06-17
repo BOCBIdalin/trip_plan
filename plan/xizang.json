@@ -1,0 +1,75 @@
+{
+  "versions": {
+    "days": 1,
+    "places": 1,
+    "foods": 1,
+    "checks": 1,
+    "texts": 2,
+    "freeNote": 1
+  },
+  "data": {
+    "days": [
+      {
+        "title": "Day 1 · 6.27 · 抵达拉萨",
+        "level": "适应",
+        "c": "shantou",
+        "items": [
+          {
+            "time": "下午",
+            "text": "抵达拉萨，办理入住，先适应高原，多休息多喝水。"
+          }
+        ]
+      }
+    ],
+    "places": [],
+    "foods": [
+      {
+        "emoji": "🍵",
+        "name": "甜茶 / 酥油茶",
+        "note": "拉萨茶馆歇脚。"
+      }
+    ],
+    "checks": [
+      {
+        "text": "提前几天吃红景天，备好抗高反药",
+        "done": false
+      },
+      {
+        "text": "订进藏交通（机票 / 火车）与住宿",
+        "done": false
+      },
+      {
+        "text": "带防晒、墨镜、唇膏、厚外套",
+        "done": false
+      }
+    ],
+    "texts": {
+      "title": "西藏 · 六天五晚",
+      "subtitle": "拉萨 · 林芝 · 纳木错　|　6.27 – 7.3　|　3 人",
+      "kicker": "A plateau trip",
+      "herotitle": "<span class=\"sea\">拉萨</span> <span class=\"sea\">林芝</span> <span class=\"sea\">纳木错</span>",
+      "seal": "藏",
+      "lede": "（在这里写一句这趟西藏行程的概述）",
+      "f1": "4 天 3 晚",
+      "f2": "3 人同行",
+      "f3": "汕头·南澳·潮州 各一晚",
+      "t1": "可以打车进岛（但是会有95的过桥费），想省钱可坐进岛公交。岛上会骑车可租电动车环岛。",
+      "t2": "出岛回汕头站，坐动车到潮汕站，再打车进潮州古城。",
+      "t3": "岩儿可以从牌坊街或广济桥附近打车去潮汕站。我跟三角我们俩可以一起去机场。",
+      "b1": " – ",
+      "b2": " – ",
+      "b3": " – ",
+      "b4": " – ",
+      "b5": "",
+      "b6": " –  元"
+    },
+    "freeNote": ""
+  },
+  "groups": {
+    "shantou": "拉萨",
+    "nanao": "林芝",
+    "chaozhou": "纳木错"
+  },
+  "updatedBy": "大林",
+  "updatedAt": 1781694756788
+}
