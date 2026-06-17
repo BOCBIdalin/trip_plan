@@ -4,7 +4,7 @@
     "places": 1,
     "foods": 1,
     "checks": 1,
-    "texts": 10,
+    "texts": 15,
     "freeNote": 1
   },
   "data": {
@@ -47,12 +47,12 @@
       "title": "西藏 · 六天五晚",
       "subtitle": "拉萨 · 林芝 · 纳木错　|　6.27 – 7.3　|　3 人",
       "kicker": "A plateau trip",
-      "herotitle": "<span class=\"sea\">拉萨</span> <span class=\"sea\">林芝</span> <span class=\"sea\">纳木错</span>",
+      "herotitle": "<font color=\"#1d7a6f\">青春没有售价！！</font>",
       "seal": "藏",
       "lede": "阿刁~~~~~~大昭寺门前布满阳光~~~~~~",
       "f1": "6 天 5 晚",
       "f2": "目前是两个人",
-      "f3": "拉萨 林芝 纳木错",
+      "f3": "拉萨 林芝 羊湖 纳木错 珠峰大本营",
       "t1": "",
       "t2": "",
       "t3": "",
@@ -87,5 +87,5 @@
     "chaozhou": "纳木错"
   },
   "updatedBy": "大林",
-  "updatedAt": 1781696951472
+  "updatedAt": 1781697652208
 }
