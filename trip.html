@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>旅行计划</title>
+
+<!-- ===================== 高德地图 Key 配置 =====================
+     1. 打开 https://console.amap.com/dev/key/app 申请一个【Web端(JS API)】Key（免费）
+     2. 申请时会同时得到一个【安全密钥 securityJsCode】
+     3. 把两个值分别填到下面两行的引号里，保存后刷新页面即可使用地图与搜索
+     ============================================================ -->
+<script>
+  window.AMAP_KEY      = "be38ebb1b1d24b584ef27d567276b013";
+  window.AMAP_SECURITY = "3c509bc1b63698a36008791b61bda650";
+  window._AMapSecurityConfig = { securityJsCode: window.AMAP_SECURITY };
+</script>
+<script src="https://webapi.amap.com/loader.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f1e7;          /* 米白纸张 */
+    --paper-2:#fbf8f1;
+    --card:#ffffff;
+    --ink:#1c3038;            /* 海墨 */
+    --ink-soft:#445a63;
+    --muted:#8a9aa0;
+    --line:#e7ddcb;           /* 沙线 */
+    --line-soft:#efe7d8;
+    --sea:#2a9d8f;            /* 海青 */
+    --sea-deep:#1d7a6f;
+    --coral:#e3674b;          /* 珊瑚 */
+    --coral-soft:#fbe7df;
+    --sand:#e9b949;           /* 暖沙金 */
+    --plum:#6b5b95;
+    --shadow:0 18px 40px -22px rgba(28,48,56,.45);
+    --shadow-sm:0 8px 22px -16px rgba(28,48,56,.5);
+    --radius:18px;
+  }
+  /* 城市主题色 */
+  .c-shantou{--c:#2a9d8f}
+  .c-nanao{--c:#2f80ed}
+  .c-chaozhou{--c:#e3674b}
+  .c-food{--c:#e9b949}
+  .c-custom{--c:#6b5b95}
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 520px at 88% -8%, rgba(42,157,143,.10), transparent 60%),
+      radial-gradient(900px 480px at -6% 4%, rgba(227,103,75,.08), transparent 55%),
+      var(--paper);
+    -webkit-font-smoothing:antialiased;
+  }
+  /* 纸张颗粒感 */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:0 22px}
+
+  h1,h2,h3,h4{font-family:"Noto Serif SC",serif;font-weight:900;letter-spacing:.01em;line-height:1.2;margin:0}
+  p{line-height:1.75;color:var(--ink-soft);margin:.4em 0}
+  .accent{font-family:"Fraunces",serif;font-style:italic}
+
+  /* ---------- 顶栏 ---------- */
+  header{position:sticky;top:0;z-index:1000;background:rgba(246,241,231,.82);backdrop-filter:saturate(140%) blur(12px);border-bottom:1px solid var(--line)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 0}
+  .brand{display:flex;align-items:center;gap:13px;min-width:0}
+  .seal{flex:none;width:46px;height:46px;border-radius:13px;background:linear-gradient(150deg,var(--sea),var(--sea-deep));color:#fff;display:grid;place-items:center;font-family:"Noto Serif SC";font-weight:900;font-size:24px;box-shadow:var(--shadow-sm);transform:rotate(-3deg)}
+  .brand .t{min-width:0}
+  .brand h1{font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand small{color:var(--muted);font-size:12.5px}
+  nav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  nav a{font-size:13.5px;color:var(--ink-soft);text-decoration:none;padding:7px 11px;border-radius:999px;transition:.2s}
+  nav a:hover{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+
+  .btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;cursor:pointer;font-weight:500;font-size:13.5px;display:inline-flex;align-items:center;gap:7px;transition:.18s;white-space:nowrap}
+  .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+  .btn.primary{background:linear-gradient(150deg,var(--ink),#2a4750);color:#fff;border-color:transparent}
+  .btn.sea{background:var(--sea);color:#fff;border-color:transparent}
+  .btn.coral{background:var(--coral);color:#fff;border-color:transparent}
+  .btn.ghost-danger{color:var(--coral);border-color:var(--coral-soft);background:var(--coral-soft)}
+  .btn.mini{padding:5px 9px;font-size:12px}
+
+  /* 可编辑提示 */
+  [contenteditable="true"]{outline:none;border-radius:7px;transition:.15s;cursor:text}
+  [contenteditable="true"]:hover{box-shadow:inset 0 0 0 1px var(--line)}
+  [contenteditable="true"]:focus{box-shadow:inset 0 0 0 2px var(--sea);background:#fff}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:46px 0 26px;position:relative}
+  .kicker{font-family:"Fraunces";font-style:italic;color:var(--coral);font-size:16px;letter-spacing:.04em}
+  .hero h2{font-size:clamp(34px,6vw,62px);line-height:1.05;margin:8px 0 6px;letter-spacing:-.01em}
+  .hero h2 .sea{color:var(--sea-deep)}
+  .lede{font-size:17px;max-width:640px}
+  .facts{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:30px}
+  .fact{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 17px;box-shadow:var(--shadow)}
+  .fact .lab{font-family:"Fraunces";font-style:italic;color:var(--muted);font-size:13px}
+  .fact .val{font-family:"Noto Serif SC";font-weight:700;font-size:17px;margin-top:5px}
+
+  /* ---------- section ---------- */
+  section{padding:34px 0;border-top:1px solid var(--line-soft)}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  .sec-head .idx{font-family:"Fraunces";font-style:italic;color:var(--sea);font-size:15px}
+  .sec-head h3{font-size:27px;margin-top:2px}
+  .sec-head p{margin:0;font-size:14px;max-width:520px}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+
+  /* ---------- 地图 ---------- */
+  .map-layout{display:grid;grid-template-columns:1fr 340px;gap:18px;align-items:start}
+  .map-shell{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow)}
+  #map{height:600px;background:#dfe8e6}
+  .map-modes{position:absolute;top:12px;right:12px;z-index:500;display:flex;gap:6px;background:rgba(255,255,255,.9);padding:5px;border-radius:999px;box-shadow:var(--shadow-sm);backdrop-filter:blur(6px)}
+  .map-modes button{border:0;background:transparent;font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--ink-soft)}
+  .map-modes button.on{background:var(--ink);color:#fff}
+  .filters{position:absolute;left:12px;top:12px;z-index:500;display:flex;gap:6px;flex-wrap:wrap;max-width:70%}
+  .chip{border:0;background:rgba(255,255,255,.92);font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--ink-soft);box-shadow:var(--shadow-sm);display:inline-flex;align-items:center;gap:6px;transition:.15s}
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--c,#999)}
+  .chip.on{background:var(--c,var(--ink));color:#fff}
+  .chip.on .dot{background:#fff}
+
+  .map-side{display:flex;flex-direction:column;gap:14px}
+  .note-box{background:linear-gradient(180deg,#fff,var(--paper-2));border:1px dashed var(--sea);border-radius:14px;padding:13px 14px;font-size:13px;color:var(--sea-deep);line-height:1.65}
+  .field label{display:block;font-size:12px;color:var(--muted);margin:9px 0 4px;font-weight:500}
+  .field input,.field select,.field textarea{width:100%;font:inherit;font-size:13.5px;border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:var(--paper-2);color:var(--ink);transition:.15s}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--sea);background:#fff;box-shadow:0 0 0 3px rgba(42,157,143,.12)}
+  .field textarea{resize:vertical;min-height:60px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+  .place-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow:auto;padding-right:4px}
+  .place{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px 11px;background:var(--paper-2)}
+  .place .pin{width:11px;height:11px;border-radius:50%;background:var(--c,#999);flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--c,#999) 22%,transparent)}
+  .place b{font-size:13.5px;font-weight:700}
+  .place small{display:block;color:var(--muted);font-size:11.5px}
+  .place .acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:70px}
+  .icon-btn[disabled]{opacity:.32;cursor:not-allowed}
+  .icon-btn{border:0;background:#fff;border:1px solid var(--line);width:28px;height:28px;border-radius:9px;cursor:pointer;font-size:13px;display:grid;place-items:center;color:var(--ink-soft);transition:.15s}
+  .icon-btn:hover{color:var(--ink);box-shadow:var(--shadow-sm)}
+
+  /* ---------- 交通 ---------- */
+  .trans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .trans{padding:18px;border-radius:var(--radius);border:1px solid var(--line);background:linear-gradient(180deg,#fff,var(--paper-2));box-shadow:var(--shadow-sm)}
+  .trans .ico{font-size:24px}
+  .trans h4{font-size:16px;margin:8px 0 6px}
+  .trans p{font-size:13.5px;margin:0}
+  .trans .route{font-family:"Fraunces";font-style:italic;color:var(--sea);font-size:13px;margin-bottom:2px}
+
+  /* ---------- 行程 ---------- */
+  .day{position:relative;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+  .day::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c,var(--sea))}
+  .day-top{display:flex;align-items:center;gap:14px;padding:16px 20px 14px 24px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+  .day-num{font-family:"Fraunces";font-style:italic;font-size:30px;color:var(--c,var(--sea));line-height:1;flex:none}
+  .day-titles{flex:1;min-width:160px}
+  .day-titles input.title{font-family:"Noto Serif SC";font-weight:700;font-size:18px;color:var(--ink);border:0;background:transparent;width:100%;border-radius:7px;padding:3px 5px}
+  .day-titles input.title:focus{outline:none;background:var(--paper-2);box-shadow:inset 0 0 0 2px var(--sea)}
+  .badge{font-size:12px;border-radius:999px;padding:5px 11px;background:color-mix(in srgb,var(--c,var(--sea)) 12%,#fff);color:var(--c,var(--sea-deep));font-weight:700;border:0;width:96px;text-align:center}
+  .day-acts{display:flex;gap:6px}
+
+  .timeline{padding:8px 20px 16px 24px}
+  .ti{display:grid;grid-template-columns:88px 1fr auto;gap:14px;align-items:start;padding:12px 0;border-bottom:1px dashed var(--line-soft);position:relative}
+  .ti:last-child{border-bottom:0}
+  .ti .time{font-family:"Fraunces";font-style:italic;color:var(--sea-deep);font-size:14px;font-weight:600}
+  .ti .time input{font:inherit;font-family:"Fraunces";font-style:italic;color:var(--sea-deep);font-weight:600;border:0;background:transparent;width:100%;border-radius:6px;padding:3px 4px}
+  .ti .time input:focus{outline:none;background:var(--paper-2);box-shadow:inset 0 0 0 2px var(--sea)}
+  .ti .body{font-size:14px;color:var(--ink-soft);line-height:1.65;border-radius:7px;padding:2px 5px}
+  .ti .body:focus{outline:none;background:var(--paper-2);box-shadow:inset 0 0 0 2px var(--sea)}
+  .ti .x{opacity:0;transition:.15s}
+  .ti:hover .x{opacity:1}
+  .day-foot{padding:0 20px 16px 24px;display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ---------- 美食 ---------- */
+  .food-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .food{position:relative;border:1px solid var(--line);border-radius:var(--radius);background:var(--card);box-shadow:var(--shadow-sm);padding:18px;transition:.2s}
+  .food:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .food .emoji{font-size:30px;line-height:1}
+  .food input.name{font-family:"Noto Serif SC";font-weight:700;font-size:16.5px;border:0;background:transparent;width:100%;margin:10px 0 6px;border-radius:6px;padding:2px 4px}
+  .food input.name:focus{outline:none;background:var(--paper-2);box-shadow:inset 0 0 0 2px var(--sea)}
+  .food input.emoji-in{font-size:30px;border:0;background:transparent;width:56px;border-radius:8px;text-align:center}
+  .food input.emoji-in:focus{outline:none;background:var(--paper-2)}
+  .food textarea{width:100%;font:inherit;font-size:13px;color:var(--ink-soft);border:0;background:transparent;resize:vertical;min-height:54px;border-radius:7px;padding:3px 4px;line-height:1.6}
+  .food textarea:focus{outline:none;background:var(--paper-2);box-shadow:inset 0 0 0 2px var(--sea)}
+  .food .del{position:absolute;top:12px;right:12px}
+
+  /* ---------- 底部网格 ---------- */
+  .grid-2{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  table.budget{border-collapse:collapse;width:100%}
+  table.budget th,table.budget td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line-soft);font-size:14px}
+  table.budget th{font-family:"Fraunces";font-style:italic;color:var(--muted);font-weight:500}
+  table.budget td:last-child{font-weight:700;color:var(--sea-deep);text-align:right}
+  table.budget tr.total td{border-bottom:0;border-top:2px solid var(--ink);font-size:15px}
+
+  .checklist{display:flex;flex-direction:column}
+  .check{display:flex;gap:11px;align-items:flex-start;padding:10px 4px;border-bottom:1px dashed var(--line-soft);cursor:pointer}
+  .check:last-child{border-bottom:0}
+  .check input{appearance:none;width:19px;height:19px;flex:none;border:2px solid var(--line);border-radius:6px;margin-top:1px;cursor:pointer;transition:.15s;position:relative}
+  .check input:checked{background:var(--sea);border-color:var(--sea)}
+  .check input:checked::after{content:"✓";position:absolute;color:#fff;font-size:13px;left:2px;top:-2px}
+  .check span{font-size:14px;color:var(--ink-soft)}
+  .check input:checked + span{color:var(--muted);text-decoration:line-through}
+
+  .free-note{width:100%;min-height:230px;font:inherit;font-size:14px;line-height:1.7;border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--paper-2);color:var(--ink);resize:vertical}
+  .free-note:focus{outline:none;border-color:var(--sea);background:#fff}
+
+  .card-pad{padding:22px}
+
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:30px 0 50px;border-top:1px solid var(--line-soft);margin-top:10px}
+  footer .accent{color:var(--coral)}
+
+  .leaflet-popup-content-wrapper{border-radius:14px;box-shadow:var(--shadow)}
+  .leaflet-popup-content{margin:14px 16px;font-family:"Noto Sans SC"}
+  .pop-t{font-family:"Noto Serif SC";font-weight:700;font-size:15px;color:var(--ink)}
+  .pop-meta{color:var(--muted);font-size:12px;margin:2px 0 6px}
+  .pop-note{font-size:13px;color:var(--ink-soft);line-height:1.55}
+  .pop-acts{margin-top:9px;display:flex;gap:6px}
+
+  /* 浮动保存提示 */
+  #toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 20px;border-radius:999px;font-size:14px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.3s;z-index:2000}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  @media(max-width:980px){
+    .map-layout{grid-template-columns:1fr}
+    .facts{grid-template-columns:1fr 1fr}
+    .trans-grid,.food-grid{grid-template-columns:1fr}
+    .grid-2{grid-template-columns:1fr}
+    #map{height:460px}
+    nav{display:none}
+  }
+  @media(max-width:560px){
+    .facts{grid-template-columns:1fr}
+    .ti{grid-template-columns:70px 1fr auto;gap:9px}
+  }
+  /* ---------- 协作：在线状态 + 名字弹窗 ---------- */
+  .presence{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font:inherit;font-size:13px;color:var(--ink-soft);cursor:pointer;box-shadow:var(--shadow-sm);white-space:nowrap;transition:.18s}
+  .presence:hover{transform:translateY(-1px)}
+  .presence .dot{width:9px;height:9px;border-radius:50%;background:var(--sea);box-shadow:0 0 0 3px rgba(42,157,143,.18);transition:.2s}
+  .presence.lost .dot,.presence.off .dot{background:var(--coral);box-shadow:0 0 0 3px var(--coral-soft)}
+  .presence b{font-weight:700;color:var(--ink)}
+  .presence .me{color:var(--muted);max-width:90px;overflow:hidden;text-overflow:ellipsis}
+
+  .modal-mask{position:fixed;inset:0;background:rgba(28,48,56,.45);backdrop-filter:blur(4px);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-mask.show{display:flex}
+  .modal{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:26px;max-width:380px;width:100%}
+  .modal .kicker{font-size:14px}
+  .modal h3{font-size:22px;margin:6px 0 8px}
+  .modal p{font-size:13.5px;margin:0 0 4px}
+  .modal input{width:100%;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--paper-2);color:var(--ink);margin-top:14px}
+  .modal input:focus{outline:none;border-color:var(--sea);background:#fff;box-shadow:0 0 0 3px rgba(42,157,143,.12)}
+
+  /* ---------- 只读 / 可编辑 模式 ---------- */
+  .mode-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:999px;padding:5px 11px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);white-space:nowrap}
+  .mode-badge.edit{background:color-mix(in srgb,var(--sea) 14%,#fff);color:var(--sea-deep);border-color:transparent}
+  .mode-badge.view{background:var(--coral-soft);color:var(--coral);border-color:transparent}
+  body.readonly .edit-only{display:none!important}
+  body.readonly [contenteditable]{cursor:default}
+  body.readonly [contenteditable]:hover,body.readonly [contenteditable]:focus{box-shadow:none;background:transparent}
+  body.readonly input:not(#name-input),body.readonly textarea,body.readonly select{cursor:default}
+  body.readonly .day-titles input.title:focus,body.readonly .ti .time input:focus,body.readonly .food input:focus,body.readonly .free-note:focus{box-shadow:none;background:transparent;outline:none}
+
+  /* ---------- 地图搜索框 ---------- */
+  .search-field{position:relative}
+  .search-field input{width:100%;font:inherit;font-size:14px;border:1px solid var(--sea);border-radius:11px;padding:10px 12px;background:#fff;color:var(--ink)}
+  .search-field input:focus{outline:none;box-shadow:0 0 0 3px rgba(42,157,143,.14)}
+  .search-hint{font-size:11.5px;color:var(--muted);margin:6px 2px 0}
+  /* 高德 InfoWindow / 自动补全下拉 适配 */
+  .amap-info-content{padding:0;border-radius:14px;overflow:hidden}
+  .amap-info-close{top:10px!important;right:10px!important}
+  .amap-info-sharp{display:none}
+  .pop{padding:13px 15px;font-family:"Noto Sans SC"}
+  .amap-sug-result{border-radius:12px!important;box-shadow:var(--shadow)!important;border:1px solid var(--line)!important;font-family:"Noto Sans SC"!important;z-index:1200!important}
+  .auto-item{padding:8px 12px!important;font-size:13px!important}
+
+  @media(max-width:980px){
+    .topbar{flex-wrap:wrap;gap:10px}
+    .presence{order:2}
+    .mode-badge{order:3}
+  }
+  @media print{
+    header,nav,.map-modes,.filters,.row-btns,.day-acts,.day-foot,.ti .x,.food .del,#toast,.note-box,.icon-btn,.btn,.presence,.modal-mask{display:none!important}
+    body{background:#fff}
+    .panel,.day,.food{box-shadow:none}
+    section{border-top:1px solid #ddd}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap topbar">
+    <div class="brand">
+      <div class="seal" id="seal" onclick="location.href='index.html'" style="cursor:pointer" title="返回全部旅行">潮</div>
+      <div class="t">
+        <h1 contenteditable="true" data-k="title">新的旅行计划</h1>
+        <small contenteditable="true" data-k="subtitle">点这里编辑：目的地 · 日期 · 人数</small>
+      </div>
+    </div>
+    <button id="presence" class="presence off" onclick="openName()" title="在线状态">
+      <span class="dot"></span><b class="pcount">1</b>&nbsp;在线 ·&nbsp;<span class="me">我</span>
+    </button>
+    <span id="mode-badge" class="mode-badge view"><span>👁</span><span class="mode-text">只读 · 仅查看</span></span>
+    <nav>
+      <a href="index.html">← 全部旅行</a>
+      <a href="#overview">概览</a>
+      <a href="#map-section">地图</a>
+      <a href="#transport">交通</a>
+      <a href="#plan">行程</a>
+      <a href="#food">美食</a>
+      <a href="#prep">清单</a>
+      <button class="btn sea edit-only" onclick="saveAll(true)">保存</button>
+      <button class="btn" onclick="window.print()">导出 PDF</button>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="wrap hero" id="overview">
+  <div class="kicker accent" contenteditable="true" data-k="kicker">A new trip</div>
+  <h2 contenteditable="true" data-k="herotitle"><span class="sea">下一站 · 出发</span></h2>
+  <p class="lede" contenteditable="true" data-k="lede">第一天落地汕头，第二天逛完汕头就去南澳岛；第三天环南澳岛，晚上转场潮州；最后一天小逛潮州之后再返程。</p>
+
+  <div class="facts">
+    <div class="fact"><div class="lab">Days</div><div class="val" contenteditable="true" data-k="f1">4 天 3 晚</div></div>
+    <div class="fact"><div class="lab">People</div><div class="val" contenteditable="true" data-k="f2">3 人同行</div></div>
+    <div class="fact"><div class="lab">Stay</div><div class="val" contenteditable="true" data-k="f3">汕头·南澳·潮州 各一晚</div></div>
+    <!-- <div class="fact"><div class="lab">Vibe</div><div class="val" contenteditable="true" data-k="f4">美食 · 海岛 · 古城夜景</div></div> -->
+  </div>
+</div>
+
+<!-- 地图 -->
+<div class="wrap">
+<section id="map-section">
+  <div class="sec-head">
+    <div>
+      <div class="idx accent">01 — Map</div>
+      <h3>地图路线</h3>
+    </div>
+    <!-- <p>高德底图。点标记可看详情；标记可<b>拖动</b>自动更新坐标；可新增 / 编辑 / 删除任意地点。</p> -->
+  </div>
+
+  <div class="map-layout">
+    <div class="map-shell">
+      <div class="filters" id="filters"></div>
+      <div class="map-modes">
+        <button id="mode-std" class="on" onclick="setBase('std')">标准</button>
+        <button id="mode-sat" onclick="setBase('sat')">卫星</button>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <div class="map-side">
+      <!-- <div class="note-box">提示：点「在地图上取点」后，直接在地图上点击即可把坐标填进表单；填好名称再「保存地点」。坐标已自动适配高德 GCJ-02。</div> -->
+
+      <div class="panel card-pad edit-only">
+        <h4 style="font-size:16px;margin-bottom:6px">搜索并添加地点</h4>
+        <div class="field search-field">
+          <input id="search-input" placeholder="🔍 搜索景点 / 酒店 / 地址，如：青澳湾">
+          <div class="search-hint">从下拉里选中后会自动填好坐标，选好「城市」再点保存地点。</div>
+        </div>
+        <div class="field" style="margin-top:14px;border-top:1px dashed var(--line-soft);padding-top:6px">
+          <input type="hidden" id="p-id">
+          <label>地点名称</label>
+          <input id="p-name" placeholder="例如：某某牛肉火锅 / 酒店 / 新景点">
+          <div class="two">
+            <div><label>城市 / 分组</label>
+              <select id="p-city">
+                <option value="shantou">汕头</option>
+                <option value="nanao">南澳</option>
+                <option value="chaozhou">潮州</option>
+                <option value="food">美食</option>
+                <option value="custom">自定义</option>
+              </select>
+            </div>
+            <div><label>类型</label><input id="p-type" placeholder="景点/美食/酒店/交通"></div>
+          </div>
+          <div class="two">
+            <div><label>纬度 lat</label><input id="p-lat" placeholder="23.3548"></div>
+            <div><label>经度 lng</label><input id="p-lng" placeholder="116.6818"></div>
+          </div>
+          <label>备注</label>
+          <textarea id="p-note" placeholder="排队情况 / 推荐菜 / 门票 / 开放时间 / 集合点"></textarea>
+        </div>
+        <div class="row-btns">
+          <button class="btn sea" onclick="savePlace()">保存地点</button>
+          <button class="btn" onclick="pickOnMap()">在地图上取点</button>
+          <button class="btn" onclick="clearForm()">清空</button>
+        </div>
+      </div>
+
+      <div class="panel card-pad">
+        <h4 style="font-size:16px;margin-bottom:10px">地点列表</h4>
+        <div class="place-list" id="place-list"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 交通 -->
+<section id="transport">
+  <div class="sec-head">
+    <div>
+      <div class="idx accent">02 — Transit</div>
+      <h3>三地之间怎么走</h3>
+    </div>
+  </div>
+  <div class="trans-grid">
+    <div class="trans">
+      <div class="ico">🚌</div>
+      <div class="route">汕头市区 → 南澳岛</div>
+      <h4>公交 / 打车</h4>
+      <p contenteditable="true" data-k="t1">可以打车进岛（但是会有95的过桥费），想省钱可坐进岛公交。岛上会骑车可租电动车环岛。</p>
+    </div>
+    <div class="trans">
+      <div class="ico">🚄</div>
+      <div class="route">南澳岛 → 潮州</div>
+      <h4>出岛 + 动车 + 打车</h4>
+      <p contenteditable="true" data-k="t2">出岛回汕头站，坐动车到潮汕站，再打车进潮州古城。</p>
+    </div>
+    <div class="trans">
+      <div class="ico">🧳</div>
+      <div class="route">潮州 → 返程</div>
+      <h4>打车直达车站</h4>
+      <p contenteditable="true" data-k="t3">岩儿可以从牌坊街或广济桥附近打车去潮汕站。我跟三角我们俩可以一起去机场。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 行程 -->
+<section id="plan">
+  <div class="sec-head">
+    <div>
+      <div class="idx accent">03 — Itinerary</div>
+      <h3>每日行程</h3>
+    </div>
+    <!-- <p>每天可增删、可拖动顺序（上移/下移）；时间与内容均可直接编辑。</p> -->
+  </div>
+  <div id="days"></div>
+  <div class="row-btns edit-only">
+    <button class="btn primary" onclick="addDay()">＋ 增加一天</button>
+    <button class="btn" onclick="copyPlan()">复制行程文本</button>
+    <button class="btn" onclick="saveAll(true)">保存行程</button>
+  </div>
+</section>
+
+<!-- 美食 -->
+<section id="food">
+  <div class="sec-head">
+    <div>
+      <div class="idx accent">04 — Eat</div>
+      <h3>必吃清单</h3>
+    </div>
+    <!-- <p>表情、名称、备注都能改；点右上角可删除。</p> -->
+  </div>
+  <div class="food-grid" id="foods"></div>
+  <div class="row-btns edit-only">
+    <button class="btn coral" onclick="addFood()">＋ 增加美食</button>
+    <button class="btn" onclick="saveAll(true)">保存美食</button>
+  </div>
+</section>
+
+<!-- 预算 + 清单 + 备注 -->
+<section id="prep">
+  <div class="sec-head">
+    <div>
+      <div class="idx accent">05 — Prep</div>
+      <h3>预算 · 清单 · 备注</h3>
+    </div>
+    <!-- <p>出发前过一遍，金额与备注都可改。</p> -->
+  </div>
+  <div class="grid-2">
+    <div class="panel card-pad">
+      <h4 style="font-size:17px;margin-bottom:8px">人均预算参考</h4>
+      <table class="budget">
+        <tr><th>项目</th><th style="text-align:right">人均</th></tr>
+        <tr><td>住宿 3 晚</td><td contenteditable="true" data-k="b1"> – </td></tr>
+        <tr><td>交通（动车 + 打车 + 小交通）</td><td contenteditable="true" data-k="b2"> – </td></tr>
+        <tr><td>餐饮</td><td contenteditable="true" data-k="b3"> – </td></tr>
+        <tr><td>门票 / 环岛</td><td contenteditable="true" data-k="b4"> – </td></tr>
+        <tr><td>机动备用</td><td contenteditable="true" data-k="b5"></td></tr>
+        <tr class="total"><td>合计（约）</td><td contenteditable="true" data-k="b6"> –  元</td></tr>
+      </table>
+    </div>
+
+    <div class="panel card-pad">
+      <h4 style="font-size:17px;margin-bottom:8px">出发前检查</h4>
+      <div class="checklist" id="checklist"></div>
+      <div class="row-btns edit-only">
+        <button class="btn mini" onclick="addCheck()">＋ 检查项</button>
+        <button class="btn mini" onclick="saveAll(true)">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel card-pad" style="margin-top:18px">
+    <h4 style="font-size:17px;margin-bottom:10px">自由备注区</h4>
+    <textarea class="free-note" id="free-note" ></textarea>
+  </div>
+
+  <div class="row-btns edit-only" style="margin-top:18px">
+    <button class="btn sea" onclick="saveAll(true)">全部保存</button>
+    <button class="btn ghost-danger" onclick="resetAll()">恢复初始内容</button>
+  </div>
+</section>
+</div>
+
+<!-- <footer>
+  自由编辑版旅行手帐 · 所有修改自动保存在<span class="accent"> 当前浏览器本地</span> · 换设备请用「导出 PDF」
+</footer> -->
+
+<div id="toast">已保存 ✓</div>
+
+<!-- 协作：输入名字 -->
+<div id="name-modal" class="modal-mask">
+  <div class="modal">
+    <div class="kicker accent">Trip plan</div>
+    <h3>潮汕旅行计划</h3>
+    <p>输入名字进入。发起人在本机可以编辑，其他人看到的是<b>实时只读</b>版本。</p>
+    <p style="color:var(--muted)">发起人的修改会自动同步给同一 Wi-Fi 下查看的人。</p>
+    <input id="name-input" placeholder="你的名字，例如：盟盟" maxlength="16"
+           onkeydown="if(event.key==='Enter')confirmName()">
+    <div class="row-btns" style="margin-top:16px;justify-content:flex-end">
+      <button class="btn sea" onclick="confirmName()">进入 →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ 坐标转换 WGS84 <-> GCJ02（适配高德底图） ============ */
+function outOfChina(lng,lat){return (lng<72.004||lng>137.8347)||(lat<0.8293||lat>55.8271);}
+function tLat(x,y){let r=-100+2*x+3*y+0.2*y*y+0.1*x*y+0.2*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;r+=(20*Math.sin(y*Math.PI)+40*Math.sin(y/3*Math.PI))*2/3;r+=(160*Math.sin(y/12*Math.PI)+320*Math.sin(y*Math.PI/30))*2/3;return r;}
+function tLng(x,y){let r=300+x+2*y+0.1*x*x+0.1*x*y+0.1*Math.sqrt(Math.abs(x));r+=(20*Math.sin(6*x*Math.PI)+20*Math.sin(2*x*Math.PI))*2/3;r+=(20*Math.sin(x*Math.PI)+40*Math.sin(x/3*Math.PI))*2/3;r+=(150*Math.sin(x/12*Math.PI)+300*Math.sin(x/30*Math.PI))*2/3;return r;}
+function wgs2gcj(lng,lat){
+  if(outOfChina(lng,lat))return[lng,lat];
+  const a=6378245,ee=0.00669342162296594323;
+  let dLat=tLat(lng-105,lat-35),dLng=tLng(lng-105,lat-35);
+  const rad=lat/180*Math.PI;let m=Math.sin(rad);m=1-ee*m*m;const s=Math.sqrt(m);
+  dLat=(dLat*180)/((a*(1-ee))/(m*s)*Math.PI);
+  dLng=(dLng*180)/(a/s*Math.cos(rad)*Math.PI);
+  return[lng+dLng,lat+dLat];
+}
+function gcj2wgs(lng,lat){const[g1,g2]=wgs2gcj(lng,lat);return[lng*2-g1,lat*2-g2];}
+
+/* ============ 数据 ============ */
+const TRIP_ID=((new URLSearchParams(location.search).get('id'))||'chaoshan').trim()||'chaoshan';
+const STATIC_FILE='plans/'+encodeURIComponent(TRIP_ID)+'.json';
+const KEY="trip_"+TRIP_ID;   // 每个旅行独立的本地缓存键
+const CITY={shantou:{name:"汕头",c:"#2a9d8f",cls:"c-shantou"},nanao:{name:"南澳",c:"#2f80ed",cls:"c-nanao"},chaozhou:{name:"潮州",c:"#e3674b",cls:"c-chaozhou"},food:{name:"美食",c:"#e9b949",cls:"c-food"},custom:{name:"自定义",c:"#6b5b95",cls:"c-custom"}};
+const ROUTE_ORDER=["shantou","nanao","chaozhou"];
+
+function uid(){return "id_"+Math.random().toString(36).slice(2,9);}
+
+/* 种子数据（坐标为高德 GCJ-02，与地图搜索/拖动得到的坐标一致） */
+function seed(){
+  const days=[
+    {title:"Day 1 · 6.18 · 抵达汕头",level:"轻松",c:"shantou",items:[
+      {time:"13:30",text:"三人抵达酒店集合，办理入住！"},
+      {time:"14:00",text:"开吃！吃饱喝足才能好好玩！"},
+      {time:"15:30",text:"从小公园开始逛 网红路线打卡（N个地方，所以中午要好好吃）........."},
+      {time:"18:30",text:"去广场码头看日落！"},
+      {time:"19:00",text:"去吃晚饭饭"},
+      {time:"20:30",text:"沿着沿海长廊晚上走走散散步，消化消化食"},
+      {time:"22:00",text:"可以去万象城/龙眼南路去吃小吃夜宵"}
+    ]},
+    {title:"Day 2 · 6.19 · 汕头老城 → 南澳",level:"中等",c:"shantou",items:[
+      {time:"09:00",text:"老妈宫戏台 → 小公园开埠区 → 邮政总局 → 汕头旅社，步行逛骑楼老街。"},
+      {time:"12:00",text:"小公园附近午餐：牛肉粿条 / 蚝烙 / 潮汕肠粉。"},
+      {time:"14:30",text:"西堤公园散步，天气好可去广场轮渡看海湾。"},
+      {time:"16:30",text:"进南澳岛。"},
+      {time:"晚上",text:"入住青澳湾或后宅镇，海边散步，吃海鲜。"}
+    ]},
+    {title:"Day 3 · 6.20 · 环南澳 → 潮州",level:"偏满",c:"nanao",items:[
+      {time:"08:30",text:"长山尾灯塔 → 田仔地质公园 → 钱澳湾灯塔，西线拍海景。"},
+      {time:"12:00",text:"吃个午饭，到时候再说。"},
+      {time:"13:30",text:"云澳监督站 → 三囱崖灯塔 → 青澳湾自然之门，南澳最经典点位。"},
+      {time:"16:30",text:"出岛回汕头站，动车到潮汕站，打车进潮州古城。"},
+      {time:"晚上",text:"牌坊街 + 南门夜市 + 广济桥外侧夜景。"}
+    ]},
+    {title:"Day 4 · 6.21 · 潮州古城 → 返程",level:"灵活",c:"chaozhou",items:[
+      {time:"09:00",text:"西湖公园 → 许驸马府 → 己略黄公祠。"},
+      {time:"11:00",text:"开元寺 → 甲第巷 → 牌坊街，午餐潮州卤鹅 / 粿条。"},
+      {time:"13:30",text:"广济桥；时间充足的话可以去韩文公祠 / 泰佛殿。"},
+      {time:"返程前",text:"打道回府。"}
+    ]}
+  ];
+  const rawPlaces=[
+    ["shantou","汕头站","景点",23.3720,116.7571,"集合 / 转场点"],
+    ["shantou","老妈宫戏台","剧场",23.3547,116.6753,"老城起点"],
+    ["shantou","小公园开埠区中山纪念亭历史文化街区","风景名胜",23.3553,116.6736,"骑楼核心拍照点"],
+    ["shantou","汕头邮政总局大楼","风景名胜",23.3529,116.6741,"老建筑"],
+    ["shantou","西堤公园","公园",23.3477,116.6646,"海边散步"],
+    ["shantou","万象城/龙眼南路美食街","购物相关场所",23.3661,116.7108,"生腌·蚝烙·甜汤·夜宵 / 逛吃"],
+    ["shantou","广场轮渡(轮渡站)","景点",23.3508,116.6856,"天气好可看海湾日落"],
+    ["custom","全季酒店(汕头东厦100购物中心店)","经济型连锁酒店",23.3862,116.7072,"汕头住宿"],
+    ["nanao","长山尾灯塔","旅游景点",23.4316,116.9460,"入岛经典灯塔"],
+    ["nanao","钱澳湾灯塔","风景名胜",23.4175,116.9997,"灯塔打卡"],
+    ["custom","南澳岛朝海夕拾民宿(前江湾沙滩店)","酒店",23.4147,117.0314,"南澳住宿"],
+    ["nanao","三囱崖灯塔","旅游景点",23.4016,117.1414,"南澳经典灯塔"],
+    ["nanao","青澳湾","风景名胜",23.4381,117.1354,"东线地标 / 自然之门"],
+    ["custom","安遇民宿(潮州古城牌坊街店)","酒店",23.664675,116.645405,"潮州住宿"],
+    ["chaozhou","潮汕站","景点",23.5396,116.5882,"动车到达 / 返程"],
+    ["chaozhou","潮州西湖公园","公园",23.6715,116.6419,"上午慢逛"],
+    ["chaozhou","许驸马府游客中心","景点",23.6706,116.6469,"古城文化点"],
+    ["chaozhou","己略黄公祠","景点",23.6655,116.6483,"潮州木雕"],
+    ["chaozhou","开元寺","寺庙道观",23.6631,116.6490,"古城核心"],
+    ["chaozhou","牌坊街","步行街",23.6686,116.6508,"吃逛集中"],
+    ["chaozhou","广济桥","国家级景点",23.6629,116.6527,"日景 / 夜景重点"],
+    ["chaozhou","韩文公祠","省级景点",23.6635,116.6590,"可与广济桥联动"],
+    ["chaozhou","开元寺泰佛殿","寺庙道观",23.6541,116.6635,"时间充足再去"],
+    ["chaozhou","南门古夜市","旅游景点",23.6553,116.6471,"夜宵 / 小吃"]
+  ];
+  // 坐标为高德 GCJ-02（来自地图搜索/拖动），直接存储，无需再转换
+  const places=rawPlaces.map(([city,name,type,lat,lng,note])=>{
+    return {id:uid(),city,name,type,lat:+lat.toFixed(6),lng:+lng.toFixed(6),note};
+  });
+  const foods=[
+    ["🥩","潮汕牛肉火锅","第一晚首选：吊龙、匙柄、嫩肉、牛肉丸，蘸沙茶酱。"],
+    ["🦪","蚝烙 / 生腌","龙眼南路或老城尝试。"],
+    ["🍜","牛肉粿条","午餐选择。"],
+    ["🦞","南澳海鲜","有海的地方就得盟盟吃海鲜！！！"],
+    ["🍚","海胆炒饭 / 紫菜炒饭","环岛午餐当主食。"],
+    ["🦆","潮州卤鹅","据说很好吃。"],
+    ["🍵","凤凰单丛茶","可以中途找茶馆歇脚尝一尝。"],
+    ["🍡","鸭母捻 / 春卷","下午甜点或夜市小吃。"],
+    ["🍉","甘草水果","据说是解腻的。"]
+  ].map(([emoji,name,note])=>({emoji,name,note}));
+  const checks=[
+    "确认 3 人抵达汕头时间",
+    "订 6.18 汕头住宿（小公园 / 万象城附近）",
+    "订 6.19 南澳住宿（青澳湾或后宅镇）",
+    "订 6.20 潮州住宿（牌坊街 / 广济桥附近）",
+    "带防晒、帽子、墨镜、肠胃药、驱蚊用品"
+  ].map(t=>({text:t,done:false}));
+  return {filter:"all",base:"std",days,places,foods,checks,texts:{},freeNote:""};
+}
+
+// 在线（被后台 http/https 服务）时：plan.json 是唯一数据源，不再依赖浏览器缓存
+const HAS_BACKEND=(location.protocol==='http:'||location.protocol==='https:');
+let S=load();
+let AMapNS=null,map,satLayer,roadNet,markers=[],routeLines=[],tempMarker=null,infoWin=null,picking=false,autoComplete=null,placeSearch=null;
+
+function load(){
+  if(HAS_BACKEND){
+    // 清掉可能存在的旧缓存，避免“改了文件页面还是旧样子”；syncInit 会立刻用 plan.json 覆盖
+    try{localStorage.removeItem(KEY);}catch(e){}
+    return seed();
+  }
+  try{const v=JSON.parse(localStorage.getItem(KEY));if(v&&v.days)return v;}catch(e){}
+  return seed();
+}
+// 在线时不写浏览器缓存（数据走 plan.json）；仅 file:// 离线单机时用 localStorage
+function persistLocal(){if(HAS_BACKEND)return;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function persist(){persistLocal();scheduleSync();}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg||"已保存 ✓";t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1400);}
+
+function saveSilent(){
+  document.querySelectorAll('[data-k]').forEach(el=>{S.texts[el.dataset.k]=el.innerHTML;});
+  const fn=document.getElementById('free-note');if(fn)S.freeNote=fn.value;
+  persist();
+}
+function saveAll(showToast){saveSilent();if(showToast)toast("已保存到本地 ✓");}
+
+/* ============ 文本 / 备注还原 ============ */
+function restoreTexts(){
+  document.querySelectorAll('[data-k]').forEach(el=>{
+    const v=S.texts[el.dataset.k];if(v!==undefined&&v!==null)el.innerHTML=v;
+    el.addEventListener('blur',saveSilent);
+  });
+  const fn=document.getElementById('free-note');
+  if(fn){fn.value=S.freeNote||"";fn.addEventListener('blur',saveSilent);}
+}
+
+/* ============ 地图（高德 JS API 2.0） ============ */
+function showMapKeyHint(msg){
+  const el=document.getElementById('map');if(!el)return;
+  el.innerHTML=`<div style="height:100%;display:grid;place-items:center;text-align:center;padding:24px;color:var(--ink-soft)">
+    <div><div style="font-size:34px">🗺️</div>
+    <h4 style="margin:10px 0 6px;font-size:18px">还差一个高德地图 Key</h4>
+    <p style="font-size:13.5px;max-width:360px;margin:0 auto">请打开本文件，在最上方把你的高德 <b>Web端(JS API)</b> Key 和 <b>安全密钥</b> 填进去，保存后刷新即可使用地图与搜索。
+    ${msg?('<br><span style="color:var(--coral)">'+esc(msg)+'</span>'):''}</p></div></div>`;
+}
+function initMap(){
+  if(!document.getElementById('map'))return;
+  if(!window.AMapLoader||!window.AMAP_KEY||/填入/.test(window.AMAP_KEY)){showMapKeyHint();return;}
+  AMapLoader.load({key:window.AMAP_KEY,version:'2.0',plugins:['AMap.AutoComplete','AMap.PlaceSearch','AMap.Scale','AMap.ToolBar']})
+    .then(AMap=>{
+      AMapNS=AMap;
+      map=new AMap.Map('map',{zoom:10,center:[116.85,23.55],viewMode:'2D',mapStyle:'amap://styles/normal'});
+      map.addControl(new AMap.Scale());
+      satLayer=new AMap.TileLayer.Satellite();
+      roadNet=new AMap.TileLayer.RoadNet();
+      map.on('click',e=>{
+        if(!CAN_EDIT||!picking)return;
+        setLatLng(e.lnglat.getLat(),e.lnglat.getLng());
+        if(!document.getElementById('p-name').value)document.getElementById('p-name').value="新地点";
+        picking=false;map.setDefaultCursor('');
+        toast("坐标已填入表单 ✓");
+      });
+      setupSearch(AMap);
+      setBase(S.base||'std');
+      drawMap();
+    })
+    .catch(err=>showMapKeyHint(err&&err.message?err.message:"地图加载失败，请检查 Key / 安全密钥 / 网络"));
+}
+function setBase(b){
+  S.base=b;
+  document.getElementById('mode-std')?.classList.toggle('on',b==='std');
+  document.getElementById('mode-sat')?.classList.toggle('on',b==='sat');
+  if(!map)return;
+  if(b==='sat'){map.add([satLayer,roadNet]);}
+  else{map.remove([satLayer,roadNet]);}
+  persistLocal(); // 底图偏好仅本地，不参与同步
+}
+function markerHTML(city,n){
+  const c=(CITY[city]||CITY.custom).c;
+  const num=(n!=null)?`<span style="position:absolute;inset:0;display:grid;place-items:center;transform:rotate(45deg);color:#fff;font-size:11px;font-weight:700;font-family:Fraunces,serif">${n}</span>`:'';
+  return `<div style="position:relative;width:24px;height:24px;border-radius:50% 50% 50% 0;background:${c};border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3);transform:rotate(-45deg)">${num}</div>`;
+}
+function visiblePlaces(){
+  const f=S.filter;
+  return S.places.filter(p=>f==='all'||p.city===f);
+}
+function openInfo(p){
+  if(!map)return;
+  const acts=CAN_EDIT?`<div class="pop-acts"><button class="btn mini" onclick="editPlace('${p.id}')">编辑</button><button class="btn mini ghost-danger" onclick="delPlace('${p.id}')">删除</button></div>`:'';
+  const html=`<div class="pop"><div class="pop-t">${esc(p.name)}</div><div class="pop-meta">${(CITY[p.city]||CITY.custom).name} · ${esc(p.type||'')}</div>${p.note?`<div class="pop-note">${esc(p.note)}</div>`:''}${acts}</div>`;
+  infoWin=new AMapNS.InfoWindow({content:html,offset:new AMapNS.Pixel(0,-20),isCustom:false});
+  infoWin.open(map,[+p.lng,+p.lat]);
+}
+function drawMap(){
+  if(!map)return;
+  markers.forEach(m=>map.remove(m));markers=[];
+  routeLines.forEach(l=>map.remove(l));routeLines=[];
+  const vis=visiblePlaces();
+  const seq={};
+  vis.forEach(p=>{
+    seq[p.city]=(seq[p.city]||0)+1;
+    const m=new AMapNS.Marker({position:[+p.lng,+p.lat],content:markerHTML(p.city,seq[p.city]),offset:new AMapNS.Pixel(-12,-22),
+      draggable:CAN_EDIT,cursor:CAN_EDIT?'move':'pointer',extData:p.id});
+    m.on('click',()=>openInfo(p));
+    if(CAN_EDIT){
+      m.on('dragend',ev=>{
+        const pos=ev.target.getPosition();const it=S.places.find(x=>x.id===p.id);
+        if(it){it.lat=+pos.getLat().toFixed(6);it.lng=+pos.getLng().toFixed(6);persist();drawList();}
+      });
+    }
+    map.add(m);markers.push(m);
+  });
+  ROUTE_ORDER.forEach(city=>{
+    if(S.filter!=='all'&&S.filter!==city)return;
+    const pts=S.places.filter(p=>p.city===city).map(p=>[+p.lng,+p.lat]);
+    if(pts.length>1){
+      const line=new AMapNS.Polyline({path:pts,strokeColor:CITY[city].c,strokeWeight:4,strokeOpacity:.7,
+        strokeStyle:city==='chaozhou'?'dashed':'solid',lineJoin:'round'});
+      map.add(line);routeLines.push(line);
+    }
+  });
+  if(vis.length&&markers.length){map.setFitView(markers,true,[50,50,50,50]);}
+}
+/* ---------- 搜索（景点 / 酒店 / 地址） ---------- */
+function setupSearch(AMap){
+  if(!document.getElementById('search-input'))return;
+  autoComplete=new AMap.AutoComplete({input:'search-input'});
+  autoComplete.on('select',e=>{
+    const poi=e.poi;
+    if(poi&&poi.location&&(poi.location.lng||poi.location.getLng))selectPoi(poi);
+    else if(poi&&poi.name)keywordSearch(poi.name);
+  });
+  placeSearch=new AMap.PlaceSearch({pageSize:1,extensions:'base'});
+}
+function doSearch(){
+  const kw=(document.getElementById('search-input')?.value||'').trim();
+  if(kw)keywordSearch(kw);
+}
+function keywordSearch(kw){
+  if(!placeSearch){toast('地图还没加载好，稍等一下');return;}
+  placeSearch.search(kw,(status,result)=>{
+    if(status==='complete'&&result.poiList&&result.poiList.pois&&result.poiList.pois.length)selectPoi(result.poiList.pois[0]);
+    else toast('没找到「'+kw+'」，换个关键词试试');
+  });
+}
+function selectPoi(poi){
+  const loc=poi.location;
+  const lng=+(loc.lng!==undefined?loc.lng:loc.getLng());
+  const lat=+(loc.lat!==undefined?loc.lat:loc.getLat());
+  document.getElementById('p-name').value=poi.name||'';
+  document.getElementById('p-type').value=(poi.type?String(poi.type).split(';').pop():'')||'景点';
+  document.getElementById('p-lat').value=lat.toFixed(6);
+  document.getElementById('p-lng').value=lng.toFixed(6);
+  if(map){map.setZoomAndCenter(15,[lng,lat]);showTemp(lng,lat);}
+  toast('已选择：'+(poi.name||'')+' — 选好城市后点「保存地点」');
+}
+function showTemp(lng,lat){
+  if(!map)return;
+  if(tempMarker)map.remove(tempMarker);
+  tempMarker=new AMapNS.Marker({position:[lng,lat],zIndex:200,offset:new AMapNS.Pixel(-9,-9),
+    content:'<div style="width:18px;height:18px;border-radius:50%;background:var(--coral,#e3674b);border:3px solid #fff;box-shadow:0 0 0 5px rgba(227,103,75,.22)"></div>'});
+  map.add(tempMarker);
+}
+function setLatLng(lat,lng){
+  document.getElementById('p-lat').value=(+lat).toFixed(6);
+  document.getElementById('p-lng').value=(+lng).toFixed(6);
+  showTemp(+lng,+lat);
+}
+function drawFilters(){
+  const box=document.getElementById('filters');
+  if(!box)return;
+  const opts=[["all","全部"],["shantou",CITY.shantou.name],["nanao",CITY.nanao.name],["chaozhou",CITY.chaozhou.name],["food",CITY.food.name],["custom",CITY.custom.name]];
+  box.innerHTML=opts.map(([k,n])=>{
+    const c=k==='all'?'#1c3038':(CITY[k]?.c||'#999');
+    return `<button class="chip ${S.filter===k?'on':''}" style="--c:${c}" onclick="setFilter('${k}')"><span class="dot"></span>${n}</button>`;
+  }).join('');
+}
+function setFilter(k){S.filter=k;persistLocal();drawFilters();drawMap();drawList();}
+
+function drawList(){
+  const box=document.getElementById('place-list');
+  if(!box)return;
+  const list=visiblePlaces();
+  if(!list.length){box.innerHTML='<p style="color:var(--muted);font-size:13px">该分组暂无地点。</p>';return;}
+  const seq={};
+  box.innerHTML=list.map((p,i)=>{
+    seq[p.city]=(seq[p.city]||0)+1;
+    const n=seq[p.city];
+    return `<div class="place ${(CITY[p.city]||CITY.custom).cls}">
+      <span class="pin"></span>
+      <div><b>${esc(p.name)}</b><small>${(CITY[p.city]||CITY.custom).name} · 第${n}站 · ${esc(p.type||'')}</small></div>
+      <div class="acts">
+        <button class="icon-btn edit-only" title="上移（路线提前）" onclick="movePlace('${p.id}',-1)" ${i===0?'disabled':''}>↑</button>
+        <button class="icon-btn edit-only" title="下移（路线推后）" onclick="movePlace('${p.id}',1)" ${i===list.length-1?'disabled':''}>↓</button>
+        <button class="icon-btn" title="定位" onclick="focusPlace('${p.id}')">◎</button>
+        <button class="icon-btn edit-only" title="编辑" onclick="editPlace('${p.id}')">✎</button>
+        <button class="icon-btn edit-only" title="删除" onclick="delPlace('${p.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function movePlace(id,dir){
+  if(!CAN_EDIT)return;
+  const vis=visiblePlaces();
+  const vi=vis.findIndex(p=>p.id===id);
+  const vj=vi+dir;
+  if(vi<0||vj<0||vj>=vis.length)return;
+  const ai=S.places.indexOf(vis[vi]);
+  const aj=S.places.indexOf(vis[vj]);
+  if(ai<0||aj<0)return;
+  const t=S.places[ai];S.places[ai]=S.places[aj];S.places[aj]=t;
+  persist();drawMap();drawList();
+}
+function focusPlace(id){const p=S.places.find(x=>x.id===id);if(p&&map){map.setZoomAndCenter(15,[+p.lng,+p.lat]);openInfo(p);document.getElementById('map-section').scrollIntoView({behavior:'smooth'});}}
+function savePlace(){
+  if(!CAN_EDIT)return;
+  const id=document.getElementById('p-id').value||uid();
+  const name=document.getElementById('p-name').value.trim();
+  const city=document.getElementById('p-city').value;
+  const type=document.getElementById('p-type').value.trim();
+  const lat=+document.getElementById('p-lat').value;
+  const lng=+document.getElementById('p-lng').value;
+  const note=document.getElementById('p-note').value.trim();
+  if(!name||isNaN(lat)||isNaN(lng)){toast("请填写名称 + 经纬度（可用上方搜索自动填）");return;}
+  const old=S.places.find(p=>p.id===id);
+  if(old)Object.assign(old,{name,city,type,lat,lng,note});
+  else S.places.push({id,name,city,type,lat,lng,note});
+  if(tempMarker&&map){map.remove(tempMarker);tempMarker=null;}
+  clearForm();persist();drawMap();drawList();drawFilters();toast("地点已保存 ✓");
+}
+function editPlace(id){
+  const p=S.places.find(x=>x.id===id);if(!p)return;
+  document.getElementById('p-id').value=p.id;
+  document.getElementById('p-name').value=p.name;
+  document.getElementById('p-city').value=CITY[p.city]?p.city:'custom';
+  document.getElementById('p-type').value=p.type||'';
+  document.getElementById('p-lat').value=p.lat;
+  document.getElementById('p-lng').value=p.lng;
+  document.getElementById('p-note').value=p.note||'';
+  document.getElementById('map-section').scrollIntoView({behavior:'smooth'});
+}
+function delPlace(id){if(!CAN_EDIT)return;if(!confirm("删除这个地点？"))return;S.places=S.places.filter(p=>p.id!==id);persist();drawMap();drawList();drawFilters();}
+function clearForm(){["p-id","p-name","p-type","p-lat","p-lng","p-note"].forEach(i=>{const el=document.getElementById(i);if(el)el.value="";});const c=document.getElementById('p-city');if(c)c.value="shantou";if(tempMarker&&map){map.remove(tempMarker);tempMarker=null;}}
+function pickOnMap(){if(!CAN_EDIT||!map)return;picking=true;map.setDefaultCursor('crosshair');toast("点击地图任意位置取点");document.getElementById('map-section').scrollIntoView({behavior:'smooth'});}
+
+/* ============ 行程 ============ */
+function drawDays(){
+  const box=document.getElementById('days');
+  if(!box)return;
+  const ed=CAN_EDIT;
+  box.innerHTML=S.days.map((d,di)=>{
+    const cls=(CITY[d.c]||CITY.custom).cls;
+    return `<div class="day ${cls}">
+      <div class="day-top">
+        <div class="day-num">${di+1}</div>
+        <div class="day-titles"><input class="title" value="${escA(d.title)}" ${ed?'':'disabled'} onchange="S.days[${di}].title=this.value;persist()"></div>
+        <input class="badge" value="${escA(d.level||'')}" ${ed?'':'disabled'} onchange="S.days[${di}].level=this.value;persist()">
+        <div class="day-acts edit-only">
+          <button class="icon-btn" title="上移" onclick="moveDay(${di},-1)">↑</button>
+          <button class="icon-btn" title="下移" onclick="moveDay(${di},1)">↓</button>
+          <button class="icon-btn" title="删除整天" onclick="delDay(${di})">🗑</button>
+        </div>
+      </div>
+      <div class="timeline">
+        ${d.items.map((it,ii)=>`
+          <div class="ti">
+            <div class="time"><input value="${escA(it.time)}" ${ed?'':'disabled'} onchange="S.days[${di}].items[${ii}].time=this.value;persist()"></div>
+            <div class="body" contenteditable="${ed}" onblur="S.days[${di}].items[${ii}].text=this.innerText;persist()">${esc(it.text)}</div>
+            <button class="icon-btn x edit-only" title="删除" onclick="delItem(${di},${ii})">✕</button>
+          </div>`).join('')}
+      </div>
+      <div class="day-foot edit-only">
+        <button class="btn mini" onclick="addItem(${di})">＋ 增加一项</button>
+        <select class="btn mini" style="padding-right:8px" onchange="S.days[${di}].c=this.value;persist();drawDays()">
+          ${Object.entries(CITY).map(([k,v])=>`<option value="${k}" ${d.c===k?'selected':''}>主题:${v.name}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+}
+function addDay(){if(!CAN_EDIT)return;S.days.push({title:"新的一天 · 日期 · 城市",level:"自定义",c:"custom",items:[{time:"09:00",text:"新增行程内容"}]});persist();drawDays();}
+function delDay(i){if(!CAN_EDIT)return;if(confirm("删除这一天？")){S.days.splice(i,1);persist();drawDays();}}
+function moveDay(i,s){if(!CAN_EDIT)return;const j=i+s;if(j<0||j>=S.days.length)return;const[d]=S.days.splice(i,1);S.days.splice(j,0,d);persist();drawDays();}
+function addItem(di){if(!CAN_EDIT)return;S.days[di].items.push({time:"自定",text:"新增行程内容"});persist();drawDays();}
+function delItem(di,ii){if(!CAN_EDIT)return;S.days[di].items.splice(ii,1);persist();drawDays();}
+function copyPlan(){
+  const txt=S.days.map(d=>`${d.title}（${d.level||''}）\n`+d.items.map(i=>`  ${i.time}　${i.text}`).join("\n")).join("\n\n");
+  navigator.clipboard.writeText(txt+"\n\n备注：\n"+(document.getElementById('free-note')?.value||"")).then(()=>toast("行程已复制 ✓"));
+}
+
+/* ============ 美食 ============ */
+function drawFoods(){
+  const box=document.getElementById('foods');
+  if(!box)return;
+  const ed=CAN_EDIT;
+  box.innerHTML=S.foods.map((f,i)=>`
+    <div class="food">
+      <button class="icon-btn del edit-only" title="删除" onclick="delFood(${i})">✕</button>
+      <input class="emoji-in" value="${escA(f.emoji)}" ${ed?'':'disabled'} onchange="S.foods[${i}].emoji=this.value;persist()">
+      <input class="name" value="${escA(f.name)}" ${ed?'':'disabled'} onchange="S.foods[${i}].name=this.value;persist()">
+      <textarea ${ed?'':'disabled'} onblur="S.foods[${i}].note=this.value;persist()">${esc(f.note)}</textarea>
+    </div>`).join('');
+}
+function addFood(){if(!CAN_EDIT)return;S.foods.push({emoji:"🍽️",name:"新增美食",note:"推荐店 / 菜品 / 价格 / 注意事项。"});persist();drawFoods();}
+function delFood(i){if(!CAN_EDIT)return;S.foods.splice(i,1);persist();drawFoods();}
+
+/* ============ 清单 ============ */
+function drawChecks(){
+  const box=document.getElementById('checklist');
+  if(!box)return;
+  const ed=CAN_EDIT;
+  box.innerHTML=S.checks.map((c,i)=>`
+    <label class="check">
+      <input type="checkbox" ${c.done?'checked':''} ${ed?'':'disabled'} onchange="S.checks[${i}].done=this.checked;persist()">
+      <span contenteditable="${ed}" onblur="S.checks[${i}].text=this.innerText;persist()">${esc(c.text)}</span>
+    </label>`).join('');
+}
+function addCheck(){if(!CAN_EDIT)return;const t=prompt("新增检查项：","");if(!t)return;S.checks.push({text:t,done:false});persist();drawChecks();}
+
+/* ============ 工具 ============ */
+function esc(s=""){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function escA(s=""){return esc(s).replace(/\n/g," ");}
+function resetAll(){
+  if(!CAN_EDIT)return;
+  if(!confirm("恢复初始内容？所有人的共享修改都会被重置为初始计划。"))return;
+  S=seed();
+  persistLocal();
+  redrawAll();
+  if(SYNC_ENABLED)pushAll();
+  toast("已恢复初始内容 ✓");
+}
+
+/* 自动保存 contenteditable 行程文本时避免丢焦点问题——使用 innerText */
+document.addEventListener('DOMContentLoaded',()=>{
+  restoreTexts();
+  applyGroups();
+  applyTripMeta();
+  initMap();
+  drawFilters();drawMap();drawList();
+  drawDays();drawFoods();drawChecks();
+  applyEditMode(); // 根据是否为本机/发起人，决定可编辑或只读
+  // 离开页面前静默保存并把未同步的修改推送到服务器
+  window.addEventListener('beforeunload',()=>{saveSilent();flushBeacon();});
+  // 启动协作同步（名字弹窗 / 拉取共享计划 / 轮询）
+  syncBoot();
+});
+</script>
+
+<script>
+/* =====================================================================
+   多人协作同步层
+   - 共享内容按「区块」同步：days / places / foods / checks / texts / freeNote
+   - 视图偏好（filter / base）只存本地，不参与同步
+   - 每 ~3 秒轮询服务器；同区块「后写覆盖」，本地正在编辑的区块不会被覆盖
+   - file:// 直接打开时自动降级为「仅本地保存」，功能不受影响
+   ===================================================================== */
+const SECTIONS=['days','places','foods','checks','texts','freeNote'];
+let SYNC_ENABLED=false;        // 是否连到了协作后台
+let started=false;             // 是否已开始同步
+const serverVersions={};       // 已知服务器各区块版本
+const lastSynced={};           // 已与服务器一致的各区块快照（用于检测本地改动）
+
+const UID=(function(){let u=localStorage.getItem('collab_uid');if(!u){u='u_'+Math.random().toString(36).slice(2,9);localStorage.setItem('collab_uid',u);}return u;})();
+let NAME=localStorage.getItem('collab_name')||'';
+
+/* ---------- 编辑权限：只有“本机/发起人”可改，其他人只读 ---------- */
+const EDIT_TOKEN=new URLSearchParams(location.search).get('edit')||'';
+const _localHost=['localhost','127.0.0.1','::1','[::1]'].includes(location.hostname);
+// file:// 直接打开 = 纯本地编辑；localhost 访问后台 = 发起人；带 ?edit=令牌 也算发起人
+let CAN_EDIT=(location.protocol==='file:')||_localHost||!!EDIT_TOKEN;
+function applyEditMode(){
+  document.body.classList.toggle('readonly',!CAN_EDIT);
+  document.querySelectorAll('[data-k]').forEach(el=>el.setAttribute('contenteditable',CAN_EDIT?'true':'false'));
+  const fn=document.getElementById('free-note');if(fn)fn.readOnly=!CAN_EDIT;
+  const b=document.getElementById('mode-badge');
+  if(b){
+    b.classList.toggle('edit',CAN_EDIT);b.classList.toggle('view',!CAN_EDIT);
+    const t=b.querySelector('.mode-text');if(t)t.textContent=CAN_EDIT?'可编辑（本机）':'只读 · 仅查看';
+    const ic=b.querySelector('span:first-child');if(ic)ic.textContent=CAN_EDIT?'✏️':'👁';
+  }
+  if(typeof drawDays==='function'){drawDays();drawFoods();drawChecks();drawList();applyTexts();if(map)drawMap();}
+}
+function reconcileEdit(canEdit){
+  if(typeof canEdit!=='boolean'||canEdit===CAN_EDIT)return;
+  CAN_EDIT=canEdit;applyEditMode();
+}
+
+const deep=o=>JSON.parse(JSON.stringify(o));
+const sstr=o=>JSON.stringify(o===undefined?null:o);
+function api(p){return p;} // 同源相对路径
+function isTyping(){const a=document.activeElement;if(!a)return false;const t=a.tagName;return t==='INPUT'||t==='TEXTAREA'||a.isContentEditable;}
+
+/* ---------- 在线状态 UI ---------- */
+function setConn(ok){
+  SYNC_ENABLED=!!ok;
+  const el=document.getElementById('presence');if(!el)return;
+  el.classList.toggle('lost',started&&!ok);
+  el.classList.toggle('off',!started);
+}
+function updatePresence(users){
+  const el=document.getElementById('presence');if(!el)return;
+  const me=el.querySelector('.me');if(me)me.textContent=NAME||'我';
+  const cnt=el.querySelector('.pcount');
+  if(!SYNC_ENABLED){if(cnt)cnt.textContent='1';el.title='离线模式：修改仅保存在本机浏览器';return;}
+  const list=users&&users.length?users:[{name:NAME||'我'}];
+  if(cnt)cnt.textContent=list.length;
+  el.title='在线：'+list.map(u=>u.name).join('、');
+}
+
+/* ---------- 重绘 ---------- */
+function applyTexts(){
+  document.querySelectorAll('[data-k]').forEach(el=>{
+    if(document.activeElement===el)return;
+    const v=S.texts[el.dataset.k];
+    if(v!==undefined&&v!==null)el.innerHTML=v;
+  });
+  const fn=document.getElementById('free-note');
+  if(fn&&document.activeElement!==fn)fn.value=S.freeNote||"";
+}
+function redrawSection(s){
+  switch(s){
+    case 'days':drawDays();break;
+    case 'places':drawMap();drawList();drawFilters();break;
+    case 'foods':drawFoods();break;
+    case 'checks':drawChecks();break;
+    case 'texts':case 'freeNote':applyTexts();break;
+  }
+}
+function redrawAll(){applyGroups();drawFilters();drawMap();drawList();drawDays();drawFoods();drawChecks();applyTexts();applyTripMeta();}
+/* 分组标签可被每个旅行的 plan JSON 里可选的 groups 字段覆盖（如 大理/丽江...）；不填则用默认 */
+function applyGroups(){
+  if(!S.groups)return;
+  Object.keys(S.groups).forEach(k=>{if(CITY[k]&&S.groups[k])CITY[k].name=String(S.groups[k]);});
+  document.querySelectorAll('#p-city option').forEach(o=>{if(CITY[o.value])o.textContent=CITY[o.value].name;});
+}
+/* 根据数据设置网页标题与左上角印章 */
+function applyTripMeta(){
+  const raw=(S.texts&&S.texts.title)?String(S.texts.title):'';
+  const t=raw.replace(/<[^>]*>/g,'').trim();
+  if(t)document.title=t;
+  const seal=document.getElementById('seal');
+  if(seal){seal.textContent=(S.texts&&S.texts.seal)?S.texts.seal:(t?Array.from(t)[0]:'旅');}
+}
+
+/* ---------- 推送本地改动 ---------- */
+let pushing=false,pushAgain=false,syncTimer=null;
+function scheduleSync(){if(!SYNC_ENABLED||!CAN_EDIT)return;clearTimeout(syncTimer);syncTimer=setTimeout(doPush,700);}
+async function doPush(){
+  if(!SYNC_ENABLED||!CAN_EDIT)return; // 只读访客不推送
+  if(pushing){pushAgain=true;return;}
+  const changed=SECTIONS.filter(s=>sstr(S[s])!==sstr(lastSynced[s]));
+  if(!changed.length)return;
+  pushing=true;
+  const sent={};changed.forEach(s=>sent[s]=deep(S[s]));
+  const headers={'Content-Type':'application/json'};
+  if(EDIT_TOKEN)headers['x-edit-token']=EDIT_TOKEN;
+  try{
+    const r=await fetch(api('/api/plan?id='+encodeURIComponent(TRIP_ID)),{method:'POST',headers,
+      body:JSON.stringify({uid:UID,editor:NAME,id:TRIP_ID,sections:sent})});
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    changed.forEach(s=>{serverVersions[s]=j.versions[s];lastSynced[s]=sent[s];});
+    setConn(true);
+  }catch(e){setConn(false);}
+  pushing=false;
+  if(pushAgain){pushAgain=false;doPush();}
+}
+function pushAll(){if(!CAN_EDIT)return Promise.resolve();SECTIONS.forEach(s=>{lastSynced[s]=undefined;});return doPush();}
+function flushBeacon(){
+  if(!SYNC_ENABLED||!CAN_EDIT||!navigator.sendBeacon)return;
+  const changed=SECTIONS.filter(s=>sstr(S[s])!==sstr(lastSynced[s]));
+  if(!changed.length)return;
+  const sections={};changed.forEach(s=>sections[s]=S[s]);
+  const blob=new Blob([JSON.stringify({uid:UID,editor:NAME,token:EDIT_TOKEN,id:TRIP_ID,sections})],{type:'application/json'});
+  navigator.sendBeacon(api('/api/plan?id='+encodeURIComponent(TRIP_ID)),blob);
+}
+
+/* ---------- 拉取 / 轮询 ---------- */
+function qs(){return 'uid='+UID+'&name='+encodeURIComponent(NAME)+'&id='+encodeURIComponent(TRIP_ID)+(EDIT_TOKEN?'&edit='+encodeURIComponent(EDIT_TOKEN):'');}
+async function syncInit(){
+  try{
+    const r=await fetch(api('/api/plan?'+qs()));
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    setConn(true);
+    if(j.groups)S.groups=j.groups;
+    reconcileEdit(j.canEdit); // 以服务器判定为准（本机=可编辑，其他人=只读）
+    const hasDoc=j.versions&&Object.values(j.versions).some(v=>v>0);
+    if(hasDoc){
+      SECTIONS.forEach(s=>{
+        if(j.data[s]!==undefined)S[s]=j.data[s];
+        serverVersions[s]=j.versions[s]||0;
+        lastSynced[s]=deep(S[s]);
+      });
+      persistLocal();redrawAll();
+    }else{
+      SECTIONS.forEach(s=>{serverVersions[s]=0;lastSynced[s]=deep(S[s]);});
+      if(CAN_EDIT)await pushAll(); // 仅发起人把本地内容作为共享初稿；访客等待
+    }
+    updatePresence(j.users);
+  }catch(e){
+    setConn(false);
+    updatePresence(null);
+  }
+}
+async function poll(){
+  if(!SYNC_ENABLED&&started){ // 断线重连尝试
+    return syncInit();
+  }
+  try{
+    const r=await fetch(api('/api/plan?'+qs()));
+    if(!r.ok)throw 0;
+    const j=await r.json();
+    setConn(true);
+    reconcileEdit(j.canEdit);
+    updatePresence(j.users);
+    if(isTyping())return; // 用户正在输入，本轮不覆盖，等下一轮
+    let changedAny=false;
+    SECTIONS.forEach(s=>{
+      const rv=j.versions[s]||0;
+      if(rv<=(serverVersions[s]||0))return;          // 服务器没有更新
+      if(sstr(S[s])!==sstr(lastSynced[s]))return;    // 本地有未推送改动 -> 让本地稍后覆盖，避免丢失
+      S[s]=j.data[s];
+      serverVersions[s]=rv;
+      lastSynced[s]=deep(S[s]);
+      redrawSection(s);
+      changedAny=true;
+    });
+    if(changedAny){
+      persistLocal();
+      if(j.updatedBy&&j.updatedBy!==NAME)toast('“'+j.updatedBy+'” 更新了计划 ✓');
+    }
+  }catch(e){setConn(false);}
+}
+
+/* ---------- 名字弹窗 / 启动 ---------- */
+/* 静态发布（GitHub Pages / 无后台）：直接读取 plans/<id>.json，只读展示 */
+async function loadStaticFile(){
+  try{
+    const r=await fetch(STATIC_FILE,{cache:'no-store'});
+    if(!r.ok)return;
+    const j=await r.json();
+    const d=(j&&j.data)?j.data:j;
+    SECTIONS.forEach(s=>{if(d[s]!==undefined)S[s]=d[s];});
+    if(j.groups||d.groups)S.groups=j.groups||d.groups;
+    redrawAll();
+  }catch(e){/* 读不到就用内置 seed，不报错 */}
+}
+async function syncBoot(){
+  // 先探测是否有协作后台（start.bat 启动的本机服务）
+  let backend=false;
+  try{const r=await fetch(api('/api/plan?ping=1&id='+encodeURIComponent(TRIP_ID)),{cache:'no-store'});backend=r.ok;}catch(e){}
+  if(!backend){               // 没有后台 = GitHub Pages 等静态托管：只读读取 plans/<id>.json
+    const p=document.getElementById('presence');if(p)p.style.display='none';
+    await loadStaticFile();
+    return;
+  }
+  if(NAME)syncStart();
+  else openName();
+}
+function syncStart(){
+  if(started)return;
+  started=true;
+  updatePresence(null);
+  syncInit().then(()=>{setInterval(poll,3000);});
+}
+function confirmName(){
+  const v=(document.getElementById('name-input').value||'').trim()||'匿名';
+  NAME=v;localStorage.setItem('collab_name',v);
+  document.getElementById('name-modal').classList.remove('show');
+  updatePresence(null);
+  if(!started)syncStart();
+  else poll(); // 改名后立刻心跳一次
+}
+function openName(){
+  const inp=document.getElementById('name-input');
+  inp.value=NAME||'';
+  document.getElementById('name-modal').classList.add('show');
+  setTimeout(()=>inp.focus(),60);
+}
+</script>
+</body>
+</html>
